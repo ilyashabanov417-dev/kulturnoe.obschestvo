@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход — Культурное общество</title>
+<style>
+  body { background: radial-gradient(circle at top, #1f1a10, #090806); color: #f5f0e6; font-family: 'Georgia', serif; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card { background: rgba(26, 22, 16, 0.95); border: 2px solid #d4af37; border-radius: 16px; padding: 28px; width: 100%; max-width: 400px; box-shadow: 0 15px 40px rgba(0,0,0,0.8); }
+  h2 { color: #d4af37; text-align: center; margin: 0 0 6px; }
+  p { text-align: center; color: #a89f8d; font-size: 13px; margin: 0 0 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab { flex: 1; padding: 10px; background: #120f0b; border: 1px solid #3d3422; color: #a89f8d; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: sans-serif; }
+  .tab.active { background: #d4af37; color: #090806; border-color: #d4af37; }
+  label { font-size: 13px; color: #d4af37; font-family: sans-serif; }
+  input { width: 100%; padding: 11px; margin: 5px 0 14px; background: #0d0b08; border: 1px solid #3d3422; color: #fff; border-radius: 8px; box-sizing: border-box; font-family: sans-serif; }
+  button.btn { background: linear-gradient(135deg, #d4af37, #aa8529); color: #090806; font-weight: bold; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; font-family: sans-serif; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>🏛️ Культурное общество</h2>
+  <p>Гимназия № 1 • Новосибирск</p>
+  <div class="tabs">
+    <button type="button" id="t-in" class="tab active" onclick="sw('in')">Вход</button>
+    <button type="button" id="t-reg" class="tab" onclick="sw('reg')">Регистрация</button>
+  </div>
+
+  <div id="f-in">
+    <label>Логин или Имя Фамилия</label>
+    <input type="text" id="in-login" placeholder="Иван Иванов">
+    <label>Пароль</label>
+    <input type="password" id="in-pass" placeholder="Введите пароль">
+    <button type="button" class="btn" onclick="doLogin()">Войти в портал</button>
+  </div>
+
+  <div id="f-reg" style="display:none">
+    <label>Имя</label><input type="text" id="r-fn" placeholder="Иван">
+    <label>Фамилия</label><input type="text" id="r-ln" placeholder="Иванов">
+    <label>Класс</label><input type="text" id="r-cl" placeholder="9А">
+    <label>Логин (никнейм)</label><input type="text" id="r-log" placeholder="Ivan_9A">
+    <label>Пароль</label><input type="password" id="r-pw" placeholder="Придумайте пароль">
+    <button type="button" class="btn" onclick="doReg()">Зарегистрироваться</button>
+  </div>
+</div>
+
+<script>
+  function getDB() {
+    var raw = localStorage.getItem('ko_v6_db') || localStorage.getItem('ko_v5_db') || localStorage.getItem('ko_v4_db');
+    var db = raw ? JSON.parse(raw) : { users: [], bookings: [], books: [] };
+    if (!Array.isArray(db.users)) db.users = [];
+    if (!Array.isArray(db.bookings)) db.bookings = [];
+    if (!Array.isArray(db.books) || !db.books.length) {
+      db.books = [{ title: 'Мастер и Маргарита — М. Булгаков', desc: 'Классика мировой литературы.' }];
+    }
+    return db;
+  }
+
+  var db = getDB();
+  localStorage.setItem('ko_v6_db', JSON.stringify(db));
+
+  if (localStorage.getItem('ko_v6_cur')) window.location.href = 'constitution.html';
+
+  function sw(m) {
+    document.getElementById('f-in').style.display = m === 'in' ? 'block' : 'none';
+    document.getElementById('f-reg').style.display = m === 'reg' ? 'block' : 'none';
+    document.getElementById('t-in').className = m === 'in' ? 'tab active' : 'tab';
+    document.getElementById('t-reg').className = m === 'reg' ? 'tab active' : 'tab';
+  }
+
+  function doReg() {
+    db = getDB();
+    var fn = document.getElementById('r-fn').value.trim();
+    var ln = document.getElementById('r-ln').value.trim();
+    var cl = document.getElementById('r-cl').value.trim();
+    var lg = document.getElementById('r-log').value.trim();
+    var pw = document.getElementById('r-pw').value.trim();
+    if (!fn || !ln || !cl || !lg || !pw) return alert('Заполните все поля!');
+    if (db.users.some(function(u) { return u.login && u.login.toLowerCase() === lg.toLowerCase(); })) return alert('Этот логин уже занят!');
+    var u = {
+      id: Date.now(), fullName: fn + ' ' + ln, cls: cl, login: lg, pass: pw,
+      status: 'Кандидат', level: 1, isAdmin: false, isLib: false, isSezan: false, sezanRole: 'Нет', warns: 0
+    };
+    db.users.push(u);
+    localStorage.setItem('ko_v6_db', JSON.stringify(db));
+    localStorage.setItem('ko_v6_cur', JSON.stringify(u));
+    window.location.href = 'constitution.html';
+  }
+
+  function doLogin() {
+    db = getDB();
+    var lg = document.getElementById('in-login').value.trim();
+    var pw = document.getElementById('in-pass').value.trim();
+    var found = db.users.find(function(u) {
+      return ((u.login && u.login.toLowerCase() === lg.toLowerCase()) || (u.fullName && u.fullName.toLowerCase() === lg.toLowerCase())) && u.pass === pw;
+    });
+    if (!found) return alert('Неверный логин или пароль!');
+    if (found.status === 'ИСКЛЮЧЁН') return alert('Вы исключены из общества за нарушение Конституции.');
+    if (!found.level) found.level = 1;
+    localStorage.setItem('ko_v6_db', JSON.stringify(db));
+    localStorage.setItem('ko_v6_cur', JSON.stringify(found));
+    window.location.href = 'constitution.html';
+  }
+</script>
+</body>
+</html>

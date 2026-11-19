@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель — Культурное общество</title>
+<style>
+  body { background: #0a0c10; color: #f0f6fc; font-family: sans-serif; margin: 0; padding-bottom: 85px; }
+  .top { background: #161b22; border-bottom: 1px solid #d4af37; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+  .wrap { max-width: 1050px; margin: 16px auto; padding: 0 16px; display: none; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; margin-bottom: 14px; overflow-x: auto; }
+  h2, h3 { color: #d4af37; margin-top: 0; }
+  select { width: 100%; padding: 6px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 6px; box-sizing: border-box; }
+  button { background: #d4af37; color: #0a0c10; font-weight: bold; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin: 2px; }
+  .btn-ok { background: #238636; color: #fff; }
+  .btn-no { background: #da3633; color: #fff; }
+  .btn-off { background: #30363d; color: #8b949e; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border-bottom: 1px solid #30363d; padding: 8px; text-align: left; }
+  th { color: #d4af37; }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0d1117; border-top: 1px solid #30363d; display: flex; justify-content: space-around; padding: 8px 4px; overflow-x: auto; z-index: 10; }
+  .nav a { color: #8b949e; text-decoration: none; font-size: 11px; text-align: center; min-width: 55px; }
+  .nav a.act { color: #d4af37; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="top">
+  <b style="color:#d4af37">👑 Панель Управления</b>
+  <button type="button" onclick="syncUsers()">🔄 Обновить список</button>
+</div>
+
+<div class="wrap" id="adm-box">
+  <div class="card">
+    <h3>📅 Записи на приём</h3>
+    <table>
+      <thead><tr><th>Дата и Тип</th><th>Ученик (Класс)</th><th>Комментарий</th><th>Статус</th><th>Решение</th></tr></thead>
+      <tbody id="tb-book"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>👥 Все зарегистрированные аккаунты (<span id="u-count">0</span>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Имя Фамилия (Класс)</th>
+          <th>Логин / Пароль</th>
+          <th>Совмещаемые должности</th>
+          <th>Отдел Sezan</th>
+          <th>Уровень (LVL)</th>
+          <th>Дисциплина</th>
+        </tr>
+      </thead>
+      <tbody id="tb-usr"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="constitution.html">📜<br>Законы</a>
+  <a href="booking.html">📅<br>Приём</a>
+  <a href="library.html">📚<br>Книги</a>
+  <a href="sezan_index.html" style="color:#00e5ff">🧬<br>Sezan</a>
+  <a href="profile.html">👤<br>Профиль</a>
+  <a href="admin.html" class="act" style="color:#d4af37">👑<br>Админ</a>
+</div>
+
+<script>
+  function loadAllUsers() {
+    var db = JSON.parse(localStorage.getItem('ko_v6_db')) || { users: [], bookings: [] };
+    if (!Array.isArray(db.users)) db.users = [];
+    if (!Array.isArray(db.bookings)) db.bookings = [];
+
+    // Собираем потерянных пользователей из старых баз, если они там были
+    ['ko_v5_db', 'ko_v4_db'].forEach(function(oldKey) {
+      var oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        var oldDb = JSON.parse(oldRaw);
+        if (oldDb && Array.isArray(oldDb.users)) {
+          oldDb.users.forEach(function(ou) {
+            if (!db.users.some(function(u) { return u.login === ou.login; })) {
+              if (!ou.level) ou.level = 1;
+              db.users.push(ou);
+            }
+          });
+        }
+      }
+    });
+    localStorage.setItem('ko_v6_db', JSON.stringify(db));
+    return db;
+  }
+
+  var db = loadAllUsers();
+  var cur = JSON.parse(localStorage.getItem('ko_v6_cur'));
+  var me = cur ? db.users.find(function(u) { return u.id === cur.id; }) : null;
+
+  if (sessionStorage.getItem('ko_v6_adm') !== '1' && (!me || !me.isAdmin)) {
+    var p = prompt('Введите пароль администратора:');
+    if (p === '417923') sessionStorage.setItem('ko_v6_adm', '1');
+    else { alert('Неверный пароль!'); window.location.href = 'constitution.html'; }
+  }
+  document.getElementById('adm-box').style.display = 'block';
+
+  function save() { localStorage.setItem('ko_v6_db', JSON.stringify(db)); }
+
+  function syncUsers() {
+    db = loadAllUsers();
+    render();
+  }
+
+  function render() {
+    document.getElementById('u-count').textContent = db.users.length;
+    document.getElementById('tb-book').innerHTML = db.bookings.map(function(b, i) {
+      return '<tr><td>' + b.dateLabel + '<br><small>' + b.type + '</small></td><td>' + b.userName + '</td><td>' + b.msg + '</td><td>' + b.status + '</td>' +
+             '<td><button type="button" class="btn-ok" onclick="decB(' + i + ', true)">Принять</button><button type="button" class="btn-no" onclick="decB(' + i + ', false)">Отказ</button></td></tr>';
+    }).join('') || '<tr><td colspan="5">Записей нет</td></tr>';
+
+    document.getElementById('tb-usr').innerHTML = db.users.map(function(u, i) {
+      var lv = u.level || 1;
+      return '<tr>' +
+             '<td><b>' + u.fullName + '</b> (' + u.cls + ')<br><small style="color:#8b949e">' + u.status + '</small></td>' +
+             '<td>Логин: <code>' + u.login + '</code><br>Пароль: <code style="color:#d4af37">' + u.pass + '</code></td>' +
+             '<td>' +
+               '<button type="button" class="' + (u.isAdmin ? 'btn-ok' : 'btn-off') + '" onclick="togRole(' + i + ',\'isAdmin\')">👑 Админ</button>' +
+               '<button type="button" class="' + (u.isSezan ? 'btn-ok' : 'btn-off') + '" onclick="togRole(' + i + ',\'isSezan\')">🧬 Sezan</button>' +
+               '<button type="button" class="' + (u.isLib ? 'btn-ok' : 'btn-off') + '" onclick="togRole(' + i + ',\'isLib\')">📚 Библиотекарь</button>' +
+             '</td>' +
+             '<td>' +
+               '<select style="width:auto;padding:4px;font-size:11px" onchange="setSzSpec(' + i + ', this.value)">' +
+                 '<option value="' + (u.sezanRole || 'Нет') + '">' + (u.sezanRole || 'Выбрать отдел...') + '</option>' +
+                 '<option value="ИТ-специалист">ИТ-специалист</option>' +
+                 '<option value="Химик">Химик</option>' +
+                 '<option value="Физик-механик">Физик-механик</option>' +
+                 '<option value="Лаборант">Лаборант</option>' +
+               '</select>' +
+             '</td>' +
+             '<td>⭐ <b>' + lv + ' LVL</b><br>' +
+               '<button type="button" class="btn-ok" onclick="chgLvl(' + i + ', 1)">+1 LVL</button>' +
+               '<button type="button" class="btn-off" onclick="chgLvl(' + i + ', -1)">-1</button>' +
+             '</td>' +
+             '<td>' + (u.warns || 0) + '/3<br><button type="button" class="btn-no" onclick="warn(' + i + ')">⚠️ Выговор</button></td>' +
+             '</tr>';
+    }).join('');
+  }
+
+  function togRole(idx, key) {
+    db.users[idx][key] = !db.users[idx][key];
+    if (db.users[idx][key] && db.users[idx].status === 'Кандидат') db.users[idx].status = 'Член общества';
+    save(); render();
+  }
+
+  function setSzSpec(idx, spec) {
+    db.users[idx].sezanRole = spec;
+    db.users[idx].isSezan = true;
+    save(); render();
+  }
+
+  function chgLvl(idx, delta) {
+    var curLv = db.users[idx].level || 1;
+    db.users[idx].level = Math.max(1, curLv + delta);
+    save(); render();
+  }
+
+  function warn(idx) {
+    db.users[idx].warns = (db.users[idx].warns || 0) + 1;
+    if (db.users[idx].warns >= 3) db.users[idx].status = 'ИСКЛЮЧЁН';
+    save(); render();
+  }
+
+  function decB(idx, ok) {
+    var b = db.bookings[idx];
+    b.status = ok ? 'Одобрено' : 'Отклонено';
+    var u = db.users.find(function(x) { return x.id === b.userId; });
+    if (u && ok) u.status = 'Участник (Месячный учёт)';
+    save(); render();
+  }
+
+  render();
+</script>
+</body>
+</html>

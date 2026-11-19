@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Инет-библиотека — Культурное общество</title>
+<style>
+  body { background: #1e1611; color: #f7ede2; font-family: 'Georgia', serif; margin: 0; padding-bottom: 80px; }
+  .top { background: #2b2019; border-bottom: 1px solid #5c4332; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+  .wrap { max-width: 800px; margin: 16px auto; padding: 0 16px; }
+  .card { background: #2b2019; border: 1px solid #5c4332; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  h2, h3 { color: #f6bd60; margin-top: 0; }
+  input, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; background: #1e1611; border: 1px solid #5c4332; color: #fff; border-radius: 8px; box-sizing: border-box; font-family: sans-serif; }
+  button { background: #f6bd60; color: #1e1611; font-weight: bold; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-family: sans-serif; }
+  .book { background: #382a21; border-left: 4px solid #f6bd60; padding: 14px; border-radius: 0 10px 10px 0; margin-bottom: 10px; }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #140e0b; border-top: 1px solid #5c4332; display: flex; justify-content: space-around; padding: 8px 4px; overflow-x: auto; font-family: sans-serif; z-index: 10; }
+  .nav a { color: #b09887; text-decoration: none; font-size: 11px; text-align: center; min-width: 55px; }
+  .nav a.act { color: #f6bd60; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="top">
+  <b style="color:#f6bd60">📚 Инет-библиотека</b>
+  <span style="color:#d4af37;font-family:sans-serif;font-size:13px">⭐ <b id="lvl">1</b> LVL</span>
+</div>
+
+<div class="wrap">
+  <div id="lib-add" class="card" style="display:none;border-color:#f6bd60">
+    <h3>Добавить книгу (Права Инет-библиотекаря)</h3>
+    <input type="text" id="bt" placeholder="Название книги и автор">
+    <textarea id="bd" rows="2" placeholder="Аннотация или ссылка на чтение..."></textarea>
+    <button type="button" onclick="addBook()">+ Опубликовать в библиотеку</button>
+  </div>
+
+  <div class="card">
+    <h2>Книжный фонд общества</h2>
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="constitution.html">📜<br>Законы</a>
+  <a href="booking.html">📅<br>Приём</a>
+  <a href="library.html" class="act">📚<br>Книги</a>
+  <a href="sezan_index.html" style="color:#00e5ff">🧬<br>Sezan</a>
+  <a href="profile.html">👤<br>Профиль</a>
+  <a href="admin.html" style="color:#d4af37">👑<br>Админ</a>
+</div>
+
+<script>
+  var cur = JSON.parse(localStorage.getItem('ko_v6_cur'));
+  if (!cur) window.location.href = 'index.html';
+  var db = JSON.parse(localStorage.getItem('ko_v6_db')) || { users: [], books: [] };
+  var me = db.users.find(function(u) { return u.id === cur.id; }) || cur;
+  document.getElementById('lvl').textContent = me.level || 1;
+
+  if (me.isLib || me.isAdmin || sessionStorage.getItem('ko_v6_adm') === '1') {
+    document.getElementById('lib-add').style.display = 'block';
+  }
+
+  function render() {
+    document.getElementById('list').innerHTML = (db.books || []).slice().reverse().map(function(b) {
+      return '<div class="book"><b style="color:#f6bd60;font-size:16px">📖 ' + b.title + '</b><p style="margin:6px 0 0;font-size:14px;color:#e0cbbd">' + b.desc + '</p></div>';
+    }).join('') || '<p style="color:#b09887">Книг пока нет.</p>';
+  }
+
+  function addBook() {
+    var t = document.getElementById('bt').value.trim();
+    var d = document.getElementById('bd').value.trim();
+    if (!t || !d) return;
+    db.books.push({ title: t, desc: d });
+    localStorage.setItem('ko_v6_db', JSON.stringify(db));
+    document.getElementById('bt').value = ''; document.getElementById('bd').value = '';
+    render();
+  }
+  render();
+</script>
+</body>
+</html>

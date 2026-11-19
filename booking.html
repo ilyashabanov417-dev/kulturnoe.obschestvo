@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Запись на приём — Культурное общество</title>
+<style>
+  body { background: #121518; color: #e6edf3; font-family: sans-serif; margin: 0; padding-bottom: 80px; }
+  .top { background: #1a1f24; border-bottom: 1px solid #30363d; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+  .wrap { max-width: 800px; margin: 16px auto; padding: 0 16px; }
+  .card { background: #1a1f24; border: 1px solid #30363d; border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  h2, h3 { color: #58a6ff; margin-top: 0; }
+  input, select { width: 100%; padding: 11px; margin: 6px 0 14px; background: #0d1117; border: 1px solid #30363d; color: #fff; border-radius: 8px; box-sizing: border-box; }
+  button { background: #238636; color: #fff; font-weight: bold; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-size: 15px; }
+  .item { border-left: 3px solid #58a6ff; background: #0d1117; padding: 12px; margin-bottom: 8px; border-radius: 0 8px 8px 0; font-size: 14px; }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0d1117; border-top: 1px solid #30363d; display: flex; justify-content: space-around; padding: 8px 4px; overflow-x: auto; z-index: 10; }
+  .nav a { color: #8b949e; text-decoration: none; font-size: 11px; text-align: center; min-width: 55px; }
+  .nav a.act { color: #58a6ff; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="top">
+  <b style="color:#58a6ff">📅 Запись на приём</b>
+  <span style="color:#d4af37;font-size:13px">⭐ <b id="lvl">1</b> LVL</span>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Запись на собеседование (Пн — Пт)</h2>
+    <p style="color:#8b949e;font-size:13px">Место: Гимназия № 1, <b>последняя перемена 1-й смены</b>. Максимум 3 места в день.</p>
+    <label>Выберите дату приёма</label>
+    <input type="date" id="b-date">
+    <label>Куда вы подаёте заявку?</label>
+    <select id="b-type">
+      <option value="Вступление в Культурное общество">Вступление в Культурное общество</option>
+      <option value="Отбор в Sezan Industries">Отбор в Sezan Industries (Закон 10)</option>
+      <option value="Личный вопрос к главам">Личный вопрос к главам</option>
+    </select>
+    <label>Комментарий</label>
+    <input type="text" id="b-msg" placeholder="Подойду на последней перемене 1 смены...">
+    <button type="button" onclick="sendBook()">Подтвердить запись</button>
+  </div>
+
+  <div class="card">
+    <h3>Журнал записей</h3>
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="constitution.html">📜<br>Законы</a>
+  <a href="booking.html" class="act">📅<br>Приём</a>
+  <a href="library.html">📚<br>Книги</a>
+  <a href="sezan_index.html" style="color:#00e5ff">🧬<br>Sezan</a>
+  <a href="profile.html">👤<br>Профиль</a>
+  <a href="admin.html" style="color:#d4af37">👑<br>Админ</a>
+</div>
+
+<script>
+  var cur = JSON.parse(localStorage.getItem('ko_v6_cur'));
+  if (!cur) window.location.href = 'index.html';
+  var db = JSON.parse(localStorage.getItem('ko_v6_db')) || { users: [], bookings: [] };
+  var me = db.users.find(function(u) { return u.id === cur.id; }) || cur;
+  document.getElementById('lvl').textContent = me.level || 1;
+
+  function render() {
+    document.getElementById('list').innerHTML = (db.bookings || []).slice().reverse().map(function(b) {
+      return '<div class="item"><small style="color:#58a6ff">' + b.dateLabel + ' • ' + b.type + '</small><br><b>' + b.userName + ':</b> ' + b.msg + ' — <b>[' + b.status + ']</b></div>';
+    }).join('') || '<p style="color:#8b949e;font-size:14px">Записей пока нет.</p>';
+  }
+
+  function sendBook() {
+    var dVal = document.getElementById('b-date').value;
+    var tp = document.getElementById('b-type').value;
+    var msg = document.getElementById('b-msg').value.trim();
+    if (!dVal || !msg) return alert('Выберите дату и напишите комментарий!');
+    var d = new Date(dVal);
+    if (d.getDay() === 0 || d.getDay() === 6) return alert('Приём только в будни (Пн — Пт)!');
+    var cnt = db.bookings.filter(function(x) { return x.date === dVal && x.status !== 'Отклонено'; }).length;
+    if (cnt >= 3) return alert('На эту дату все 3 места заняты!');
+
+    db.bookings.push({
+      id: Date.now(), date: dVal, dateLabel: d.toLocaleDateString('ru-RU') + ' (Посл. перемена 1 см.)',
+      type: tp, userId: me.id, userName: me.fullName + ' (' + me.cls + ')', msg: msg, status: 'На рассмотрении'
+    });
+    localStorage.setItem('ko_v6_db', JSON.stringify(db));
+    document.getElementById('b-msg').value = '';
+    render();
+  }
+  render();
+</script>
+</body>
+</html>
